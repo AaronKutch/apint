@@ -79,6 +79,8 @@ pub(crate) use digit::{
     DoubleDigit,
 };
 
+pub(crate) use bitwidth::bw;
+
 pub use crate::{
     apint::{
         ApInt,

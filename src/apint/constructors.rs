@@ -1,5 +1,6 @@
 use crate::{
     apint::ApIntData,
+    bw,
     mem::vec::Vec,
     storage::Storage,
     ApInt,
@@ -12,7 +13,10 @@ use crate::{
 
 use smallvec::SmallVec;
 
-use core::ptr::NonNull;
+use core::{
+    convert::TryFrom,
+    ptr::NonNull,
+};
 
 impl ApInt {
     /// Deallocates memory that may be allocated by this `ApInt`.
@@ -91,7 +95,7 @@ impl ApInt {
     where
         B: Into<Bit>,
     {
-        ApInt::new_inl(BitWidth::w1(), Digit(bit.into().to_bool() as u64))
+        ApInt::new_inl(bw(1), Digit(bit.into().to_bool() as u64))
     }
 
     /// Creates a new `ApInt` from a given `i8` value with a bit-width of 8.
@@ -103,7 +107,7 @@ impl ApInt {
     /// Creates a new `ApInt` from a given `u8` value with a bit-width of 8.
     #[inline]
     pub fn from_u8(val: u8) -> ApInt {
-        ApInt::new_inl(BitWidth::w8(), Digit(u64::from(val)))
+        ApInt::new_inl(bw(8), Digit(u64::from(val)))
     }
 
     /// Creates a new `ApInt` from a given `i16` value with a bit-width of 16.
@@ -115,7 +119,7 @@ impl ApInt {
     /// Creates a new `ApInt` from a given `u16` value with a bit-width of 16.
     #[inline]
     pub fn from_u16(val: u16) -> ApInt {
-        ApInt::new_inl(BitWidth::w16(), Digit(u64::from(val)))
+        ApInt::new_inl(bw(16), Digit(u64::from(val)))
     }
 
     /// Creates a new `ApInt` from a given `i32` value with a bit-width of 32.
@@ -127,7 +131,7 @@ impl ApInt {
     /// Creates a new `ApInt` from a given `u32` value with a bit-width of 32.
     #[inline]
     pub fn from_u32(val: u32) -> ApInt {
-        ApInt::new_inl(BitWidth::w32(), Digit(u64::from(val)))
+        ApInt::new_inl(bw(32), Digit(u64::from(val)))
     }
 
     /// Creates a new `ApInt` from a given `i64` value with a bit-width of 64.
@@ -139,7 +143,7 @@ impl ApInt {
     /// Creates a new `ApInt` from a given `u64` value with a bit-width of 64.
     #[inline]
     pub fn from_u64(val: u64) -> ApInt {
-        ApInt::new_inl(BitWidth::w64(), Digit(val))
+        ApInt::new_inl(bw(64), Digit(val))
     }
 
     /// Creates a new `ApInt` from a given `i128` value with a bit-width of 128.
@@ -182,11 +186,11 @@ impl ApInt {
                     "We have already asserted that `digits.len()` must be at exactly \
                      `1`.",
                 );
-                Ok(ApInt::new_inl(BitWidth::w64(), first_and_only))
+                Ok(ApInt::new_inl(bw(64), first_and_only))
             }
             n => {
                 use core::mem;
-                let bitwidth = BitWidth::new(n * Digit::BITS).expect(
+                let bitwidth = BitWidth::try_from(n * Digit::BITS).expect(
                     "We have already asserted that the number of items the given \
                      Iterator iterates over is greater than `1` and thus non-zero and \
                      thus a valid `BitWidth`.",
@@ -202,7 +206,8 @@ impl ApInt {
         }
     }
 
-    // TODO: convert this to take from a slice or IntoIterator<u64>
+    // TODO: convert this to take from a slice or
+    // FromIterator<u64>/IntoIterator<u64>
     #[cfg(test)]
     pub(crate) fn from_vec_u64(val: Vec<u64>) -> Option<ApInt> {
         if val.len() == 0 {

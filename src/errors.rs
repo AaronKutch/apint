@@ -12,12 +12,16 @@ use crate::{
     ShiftAmount,
 };
 
+use core::convert::Infallible;
 use core::{
     fmt,
     result,
 };
 #[cfg(feature = "std")]
 use std::error;
+
+/// The `Result` type used in `ApInt`.
+pub type Result<T> = result::Result<T, Error>;
 
 /// Represents the kind of an `Error`.
 ///
@@ -136,6 +140,37 @@ pub struct Error {
     kind: ErrorKind,
     message: String,
     annotation: Option<String>,
+}
+
+#[cfg(feature = "std")]
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        self.message.as_str()
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
+    }
+}
+
+impl<T> Into<Result<T>> for Error {
+    /// Converts an `Error` into a `Result<T, Error>`.
+    ///
+    /// This might be useful to prevent some parentheses spams
+    /// because it replaces `Err(my_error)` with `my_error.into()`.
+    ///
+    /// On the other hand it might be an abuse of the trait ...
+    fn into(self) -> Result<T> {
+        Err(self)
+    }
 }
 
 //  ===========================================================================
@@ -381,31 +416,3 @@ impl Error {
         }
     }
 }
-
-impl<T> Into<Result<T>> for Error {
-    /// Converts an `Error` into a `Result<T, Error>`.
-    ///
-    /// This might be useful to prevent some parentheses spams
-    /// because it replaces `Err(my_error)` with `my_error.into()`.
-    ///
-    /// On the other hand it might be an abuse of the trait ...
-    fn into(self) -> Result<T> {
-        Err(self)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        <Self as fmt::Debug>::fmt(self, f)
-    }
-}
-
-#[cfg(feature = "std")]
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        self.message.as_str()
-    }
-}
-
-/// The `Result` type used in `ApInt`.
-pub type Result<T> = result::Result<T, Error>;

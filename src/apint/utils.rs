@@ -21,6 +21,8 @@ use core::{
     },
 };
 
+use core::convert::TryFrom;
+
 impl fmt::Debug for ApInt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ApInt")
@@ -87,7 +89,7 @@ impl Width for ApInt {
     /// Returns the `BitWidth` of this `ApInt`.
     #[inline]
     fn width(&self) -> BitWidth {
-        BitWidth::new(self.len_bits()).unwrap()
+        BitWidth::try_from(self.len_bits()).unwrap()
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::{
+    bw,
     ApInt,
     BitWidth,
     Digit,
@@ -104,12 +105,12 @@ impl PrimitiveTy {
     pub(crate) fn associated_width(self) -> BitWidth {
         use self::PrimitiveTy::*;
         match self {
-            Bool => BitWidth::w1(),
-            I8 | U8 => BitWidth::w8(),
-            I16 | U16 => BitWidth::w16(),
-            I32 | U32 => BitWidth::w32(),
-            I64 | U64 => BitWidth::w64(),
-            I128 | U128 => BitWidth::w128(),
+            Bool => bw(1),
+            I8 | U8 => bw(8),
+            I16 | U16 => bw(16),
+            I32 | U32 => bw(32),
+            I64 | U64 => bw(64),
+            I128 | U128 => bw(128),
         }
     }
 }
@@ -137,7 +138,7 @@ impl ApInt {
                  `Digit::sign_extend_from` is safe for it.",
             );
         }
-        if target_width < BitWidth::w64() {
+        if target_width < bw(64) {
             lsd.truncate_to(target_width).expect(
                 "Since `target_width` is always less than or equal to `64` bits calling \
                  `Digit::sign_extend_from` is safe for it.",
@@ -270,7 +271,7 @@ impl ApInt {
         let mut result: i128 =
             (i128::from(lsd_1.repr()) << Digit::BITS) + i128::from(lsd_0.repr());
         let actual_width = self.width();
-        let target_width = BitWidth::w128();
+        let target_width = bw(128);
 
         if actual_width < target_width {
             // Sign extend the `i128`. Fill up with `1` up to `128` bits
@@ -335,7 +336,7 @@ impl ApInt {
                      `target_width` is always less than or equal to `64` bits calling \
                      `Digit::sign_extend_from` is safe for it.",
                 );
-                if target_width < BitWidth::w64() {
+                if target_width < bw(64) {
                     lsd.truncate_to(target_width).expect(
                         "Since `target_width` is always less than or equal to `64` bits \
                          calling `Digit::sign_extend_from` is safe for it.",
@@ -534,7 +535,7 @@ impl ApInt {
             (i128::from(lsd_1.repr()) << Digit::BITS) + i128::from(lsd_0.repr());
 
         let actual_width = self.width();
-        let target_width = BitWidth::w128();
+        let target_width = bw(128);
         if actual_width < target_width {
             // Sign extend the `i128`. Fill up with `1` up to `128` bits
             // starting from the sign bit position.

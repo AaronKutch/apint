@@ -7,105 +7,76 @@ use crate::{
     ShiftAmount,
 };
 
+use core::{
+    convert::{
+        TryFrom,
+        TryInto,
+    },
+    num::NonZeroUsize,
+};
+
 /// The `BitWidth` represents the length of an `ApInt`.
 ///
 /// Its invariant restricts it to always be a positive, non-zero value.
 /// Code that built's on top of `BitWidth` may and should use this invariant.
+///
+/// This is currently just a wrapper around `NonZeroUsize` (in case
+/// future compiler optimizations can make use of it), but this is not
+/// exposed because of the option of custom functions and
+/// allowing forks of `ApInt` to use other internal types.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BitWidth(usize);
+pub struct BitWidth(NonZeroUsize);
 
-//  ===========================================================================
-///  Constructors
-/// ===========================================================================
-impl BitWidth {
-    /// Creates a `BitWidth` that represents a bit-width of `1` bit.
-    #[inline]
-    pub fn w1() -> Self {
-        BitWidth(1)
+impl From<NonZeroUsize> for BitWidth {
+    /// Creates a `BitWidth` from the given `NonZeroUsize`.
+    fn from(width: NonZeroUsize) -> Self {
+        BitWidth(width)
     }
+}
 
-    /// Creates a `BitWidth` that represents a bit-width of `8` bits.
-    #[inline]
-    pub fn w8() -> Self {
-        BitWidth(8)
-    }
-
-    /// Creates a `BitWidth` that represents a bit-width of `16` bits.
-    #[inline]
-    pub fn w16() -> Self {
-        BitWidth(16)
-    }
-
-    /// Creates a `BitWidth` that represents a bit-width of `32` bits.
-    #[inline]
-    pub fn w32() -> Self {
-        BitWidth(32)
-    }
-
-    /// Creates a `BitWidth` that represents a bit-width of `64` bits.
-    #[inline]
-    pub fn w64() -> Self {
-        BitWidth(64)
-    }
-
-    /// Creates a `BitWidth` that represents a bit-width of `128` bits.
-    #[inline]
-    pub fn w128() -> Self {
-        BitWidth(128)
-    }
+impl TryFrom<usize> for BitWidth {
+    type Error = Error;
 
     /// Creates a `BitWidth` from the given `usize`.
     ///
     /// # Errors
     ///
     /// - If the given `width` is equal to zero.
-    pub fn new(width: usize) -> Result<Self> {
-        if width == 0 {
-            return Err(Error::invalid_zero_bitwidth())
+    fn try_from(width: usize) -> Result<Self> {
+        match NonZeroUsize::new(width) {
+            Some(bitwidth) => Ok(BitWidth(bitwidth)),
+            None => Err(Error::invalid_zero_bitwidth()),
         }
-        Ok(BitWidth(width))
-    }
-
-    /// Returns `true` if the given `BitPos` is valid for this `BitWidth`.
-    #[inline]
-    pub(crate) fn is_valid_pos<P>(self, pos: P) -> bool
-    where
-        P: Into<BitPos>,
-    {
-        pos.into().to_usize() < self.0
-    }
-
-    /// Returns `true` if the given `ShiftAmount` is valid for this `BitWidth`.
-    #[inline]
-    pub(crate) fn is_valid_shift_amount<S>(self, shift_amount: S) -> bool
-    where
-        S: Into<ShiftAmount>,
-    {
-        shift_amount.into().to_usize() < self.0
-    }
-
-    /// Returns the `BitPos` for the sign bit of an `ApInt` with this
-    /// `BitWidth`.
-    #[inline]
-    pub(crate) fn sign_bit_pos(self) -> BitPos {
-        BitPos::from(self.to_usize() - 1)
     }
 }
 
-impl From<usize> for BitWidth {
-    fn from(width: usize) -> BitWidth {
-        BitWidth::new(width).unwrap()
-    }
+pub(crate) fn bw<S>(width: S) -> BitWidth
+where
+    S: TryInto<BitWidth>,
+{
+    // For this case, we erase the regular error unwrapping message by converting
+    // the `Result` to an `Option`, and displaying a different message.
+    width.try_into().ok().expect(
+        "Tried to construct an invalid BitWidth of 0 using the `apint::bw` function",
+    )
 }
 
-//  ===========================================================================
-///  API
-/// ===========================================================================
 impl BitWidth {
     /// Converts this `BitWidth` into a `usize`.
     #[inline]
     pub fn to_usize(self) -> usize {
-        self.0
+        self.0.get()
+    }
+
+    /// Returns a storage specifier that tells the caller if `ApInt`'s
+    /// associated with this bitwidth require an external memory (`Ext`) to
+    /// store their digits or may use inplace memory (`Inl`).
+    ///
+    /// *Note:* Maybe this method should be removed. A constructor for
+    ///         `Storage` fits better for this purpose.
+    #[inline]
+    pub(crate) fn storage(self) -> Storage {
+        Storage::from(self)
     }
 
     /// Returns the number of exceeding bits that is implied for `ApInt`
@@ -131,18 +102,10 @@ impl BitWidth {
     ///         Read the documentation of `excess_bits` for more information
     ///         about what is actually returned by this.
     pub(crate) fn excess_width(self) -> Option<BitWidth> {
-        self.excess_bits().map(BitWidth::from)
-    }
-
-    /// Returns a storage specifier that tells the caller if `ApInt`'s
-    /// associated with this bitwidth require an external memory (`Ext`) to
-    /// store their digits or may use inplace memory (`Inl`).
-    ///
-    /// *Note:* Maybe this method should be removed. A constructor for
-    ///         `Storage` fits better for this purpose.
-    #[inline]
-    pub(crate) fn storage(self) -> Storage {
-        Storage::from(self)
+        match self.to_usize() % Digit::BITS {
+            0 => None,
+            n => BitWidth::try_from(n).ok(),
+        }
     }
 
     /// Returns the number of digits that are required to represent an
@@ -152,6 +115,31 @@ impl BitWidth {
     #[inline]
     pub(crate) fn required_digits(self) -> usize {
         ((self.to_usize() - 1) / Digit::BITS) + 1
+    }
+
+    /// Returns `true` if the given `BitPos` is valid for this `BitWidth`.
+    #[inline]
+    pub(crate) fn is_valid_pos<P>(self, pos: P) -> bool
+    where
+        P: Into<BitPos>,
+    {
+        pos.into().to_usize() < self.to_usize()
+    }
+
+    /// Returns `true` if the given `ShiftAmount` is valid for this `BitWidth`.
+    #[inline]
+    pub(crate) fn is_valid_shift_amount<S>(self, shift_amount: S) -> bool
+    where
+        S: Into<ShiftAmount>,
+    {
+        shift_amount.into().to_usize() < self.to_usize()
+    }
+
+    /// Returns the `BitPos` for the sign bit of an `ApInt` with this
+    /// `BitWidth`.
+    #[inline]
+    pub(crate) fn sign_bit_pos(self) -> BitPos {
+        BitPos::from(self.to_usize() - 1)
     }
 }
 
@@ -163,23 +151,13 @@ mod tests {
         use super::*;
 
         #[test]
-        fn powers_of_two() {
-            assert_eq!(BitWidth::w1().excess_bits(), Some(1));
-            assert_eq!(BitWidth::w8().excess_bits(), Some(8));
-            assert_eq!(BitWidth::w16().excess_bits(), Some(16));
-            assert_eq!(BitWidth::w32().excess_bits(), Some(32));
-            assert_eq!(BitWidth::w64().excess_bits(), None);
-            assert_eq!(BitWidth::w128().excess_bits(), None);
-        }
-
-        #[test]
         fn multiples_of_50() {
-            assert_eq!(BitWidth::new(50).unwrap().excess_bits(), Some(50));
-            assert_eq!(BitWidth::new(100).unwrap().excess_bits(), Some(36));
-            assert_eq!(BitWidth::new(150).unwrap().excess_bits(), Some(22));
-            assert_eq!(BitWidth::new(200).unwrap().excess_bits(), Some(8));
-            assert_eq!(BitWidth::new(250).unwrap().excess_bits(), Some(58));
-            assert_eq!(BitWidth::new(300).unwrap().excess_bits(), Some(44));
+            assert_eq!(bw(50).unwrap().excess_bits(), Some(50));
+            assert_eq!(bw(100).unwrap().excess_bits(), Some(36));
+            assert_eq!(bw(150).unwrap().excess_bits(), Some(22));
+            assert_eq!(bw(200).unwrap().excess_bits(), Some(8));
+            assert_eq!(bw(250).unwrap().excess_bits(), Some(58));
+            assert_eq!(bw(300).unwrap().excess_bits(), Some(44));
         }
     }
 }

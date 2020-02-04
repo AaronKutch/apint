@@ -11,6 +11,7 @@ use crate::{
     Bit,
     BitPos,
     BitWidth,
+    Error,
     Int,
     Result,
     ShiftAmount,
@@ -20,7 +21,10 @@ use crate::{
 #[cfg(feature = "rand_support")]
 use rand;
 
-use core::cmp::Ordering;
+use core::{
+    cmp::Ordering,
+    convert::TryInto,
+};
 
 /// Unsigned machine integer with arbitrary bitwidths and modulo arithmetics.
 ///
@@ -646,7 +650,7 @@ impl UInt {
     /// - If the `target_width` is greater than the current width.
     pub fn into_truncate<W>(self, target_width: W) -> Result<UInt>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         try_forward_bin_mut_impl(self, target_width, UInt::truncate)
     }
@@ -664,7 +668,7 @@ impl UInt {
     /// - If the `target_width` is greater than the current width.
     pub fn truncate<W>(&mut self, target_width: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         self.value.truncate(target_width)
     }
@@ -684,7 +688,7 @@ impl UInt {
     /// - If the `target_width` is less than the current width.
     pub fn into_extend<W>(self, target_width: W) -> Result<UInt>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         try_forward_bin_mut_impl(self, target_width, UInt::extend)
     }
@@ -702,7 +706,7 @@ impl UInt {
     /// - If the `target_width` is less than the current width.
     pub fn extend<W>(&mut self, target_width: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         self.value.zero_extend(target_width)
     }

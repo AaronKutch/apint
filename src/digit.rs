@@ -1,4 +1,5 @@
 use crate::{
+    bw,
     checks,
     BitPos,
     BitWidth,
@@ -23,6 +24,8 @@ use core::ops::{
     Shr,
     Sub,
 };
+
+use core::convert::TryInto;
 
 /// The type for the internal `Digit` representation.
 ///
@@ -363,21 +366,6 @@ impl Digit {
 }
 
 impl Digit {
-    /// Validates the given `BitWidth` for `Digit` instances and returns
-    /// an appropriate error if the given `BitWidth` is invalid.
-    fn verify_valid_bitwidth<W>(self, width: W) -> Result<()>
-    where
-        W: Into<BitWidth>,
-    {
-        let width = width.into();
-        if width.to_usize() > Digit::BITS {
-            return Err(Error::invalid_bitwidth(width.to_usize()).with_annotation(
-                "Encountered invalid `BitWidth` for operating on a `Digit`.",
-            ))
-        }
-        Ok(())
-    }
-
     /// Truncates this `Digit` to the given `BitWidth`.
     ///
     /// This operation just zeros out any bits on this `Digit`
@@ -392,10 +380,9 @@ impl Digit {
     /// - If the given `BitWidth` is invalid for `Digit` instances.
     pub(crate) fn truncate_to<W>(&mut self, to: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
-        let to = to.into();
-        self.verify_valid_bitwidth(to)?;
+        let to = to.try_into()?;
         self.0 &= !(REPR_ONES << to.to_usize());
         Ok(())
     }
@@ -415,11 +402,9 @@ impl Digit {
     /// - If the given `BitWidth` is invalid for `Digit` instances.
     pub(crate) fn sign_extend_from<W>(&mut self, from: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
-        let from = from.into();
-        self.verify_valid_bitwidth(from)?;
-
+        let from: BitWidth = from.try_into()?;
         let b = from.to_usize(); // number of bits representing the number in x
         let x = self.repr() as i64; // sign extend this b-bit number to r
         let m: i64 = 1 << (b - 1); // mask can be pre-computed if b is fixed
@@ -434,13 +419,13 @@ impl Digit {
 
 impl Width for Digit {
     fn width(&self) -> BitWidth {
-        BitWidth::w64()
+        bw(64)
     }
 }
 
 impl Width for DoubleDigit {
     fn width(&self) -> BitWidth {
-        BitWidth::w128()
+        bw(128)
     }
 }
 

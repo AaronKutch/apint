@@ -14,6 +14,8 @@ use crate::{
     Width,
 };
 
+use core::convert::TryInto;
+
 impl Clone for ApInt {
     fn clone(&self) -> Self {
         match self.storage() {
@@ -121,7 +123,7 @@ impl ApInt {
     /// - If the `target_width` is greater than the current width.
     pub fn into_truncate<W>(self, target_width: W) -> Result<ApInt>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         try_forward_bin_mut_impl(self, target_width, ApInt::truncate)
     }
@@ -139,10 +141,10 @@ impl ApInt {
     /// - If the `target_width` is greater than the current width.
     pub fn truncate<W>(&mut self, target_width: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         let actual_width = self.width();
-        let target_width = target_width.into();
+        let target_width = target_width.try_into()?;
 
         if target_width == actual_width {
             return Ok(())
@@ -172,7 +174,7 @@ impl ApInt {
             // exactly `2` digits for the representation.
             // The same applies to all bit widths that require the same
             // amount of digits for their representation.
-            let excess_width = target_width.excess_bits().expect(
+            let excess_width: BitWidth = target_width.excess_width().expect(
                 "We already filtered cases where `excess_bits` may return `None` by \
                  requiring that `self.width() > target_width`.",
             );
@@ -224,7 +226,7 @@ impl ApInt {
     /// - If the `target_width` is less than the current width.
     pub fn into_zero_extend<W>(self, target_width: W) -> Result<ApInt>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         try_forward_bin_mut_impl(self, target_width, ApInt::zero_extend)
     }
@@ -242,10 +244,10 @@ impl ApInt {
     /// - If the `target_width` is less than the current width.
     pub fn zero_extend<W>(&mut self, target_width: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         let actual_width = self.width();
-        let target_width = target_width.into();
+        let target_width = target_width.try_into()?;
 
         if target_width == actual_width {
             return Ok(())
@@ -309,7 +311,7 @@ impl ApInt {
     /// - If the `target_width` is less than the current width.
     pub fn into_sign_extend<W>(self, target_width: W) -> Result<ApInt>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         try_forward_bin_mut_impl(self, target_width, ApInt::sign_extend)
     }
@@ -327,10 +329,10 @@ impl ApInt {
     /// - If the `target_width` is less than the current width.
     pub fn sign_extend<W>(&mut self, target_width: W) -> Result<()>
     where
-        W: Into<BitWidth>,
+        W: TryInto<BitWidth, Error = Error>,
     {
         let actual_width = self.width();
-        let target_width = target_width.into();
+        let target_width = target_width.try_into()?;
 
         if target_width == actual_width {
             return Ok(())
