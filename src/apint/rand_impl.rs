@@ -43,7 +43,7 @@ impl ApInt {
                 "We asserted that `required_digits` is at least `1` or greater
                      so it is safe to assume that `ApInt::from_iter` won't fail.",
             )
-            .into_truncate(width)
+            .into_truncate(width.to_usize())
             .expect(
                 "`BitWidth::required_digits` returns an upper bound for the
                      number of required digits, so it is safe to truncate.",

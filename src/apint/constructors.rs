@@ -235,7 +235,7 @@ impl ApInt {
                 "Since `required_digits` always returns `1` or more required digits we \
                  can safely assume that this operation never fails.",
             )
-            .into_truncate(target_width)
+            .into_truncate(target_width.to_usize())
             .expect(
                 "Since `BitWidth::required_digits` always returns the upper bound for \
                  the number of digits required to represent the given `BitWidth` and \

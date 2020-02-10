@@ -179,7 +179,7 @@ impl ApInt {
                  requiring that `self.width() > target_width`.",
             );
             self.most_significant_digit_mut()
-                .truncate_to(excess_width)
+                .truncate_to(excess_width.to_usize())
                 .expect(
                     "Excess bits are guaranteed to be within the bounds for valid \
                      truncation of a single `Digit`.",
@@ -203,7 +203,7 @@ impl ApInt {
             // with bit precision.
             // This will simply call the `then` branch of this method.
             if truncated_copy.width() != target_width {
-                truncated_copy.truncate(target_width)?;
+                truncated_copy.truncate(target_width.to_usize())?;
             }
             *self = truncated_copy;
         }
@@ -289,7 +289,7 @@ impl ApInt {
                 self.digits()
                     .chain(iter::repeat(Digit::ZERO).take(additional_digits)),
             )
-            .and_then(|apint| apint.into_truncate(target_width))?;
+            .and_then(|apint| apint.into_truncate(target_width.to_usize()))?;
             *self = extended_clone;
         }
         Ok(())
@@ -349,7 +349,7 @@ impl ApInt {
         }
 
         if self.most_significant_bit() == Bit::Unset {
-            return self.zero_extend(target_width)
+            return self.zero_extend(target_width.to_usize())
         }
 
         let actual_req_digits = actual_width.required_digits();
@@ -372,7 +372,7 @@ impl ApInt {
             // most-significant bit up to the `target_width`.
             if let Some(excess_width) = actual_width.excess_width() {
                 self.most_significant_digit_mut()
-                    .sign_extend_from(excess_width)?;
+                    .sign_extend_from(excess_width.to_usize())?;
             }
             self.clear_unused_bits();
         } else {
@@ -388,14 +388,14 @@ impl ApInt {
             // most-significant bit.
             if let Some(excess_width) = actual_width.excess_width() {
                 self.most_significant_digit_mut()
-                    .sign_extend_from(excess_width)?;
+                    .sign_extend_from(excess_width.to_usize())?;
             }
 
             let extended_copy = ApInt::from_iter(
                 self.digits()
                     .chain(iter::repeat(Digit::ONES).take(additional_digits)),
             )
-            .and_then(|apint| apint.into_truncate(target_width))?;
+            .and_then(|apint| apint.into_truncate(target_width.to_usize()))?;
 
             self.clear_unused_bits();
             *self = extended_copy;
@@ -453,12 +453,12 @@ impl ApInt {
         let target_width = target_width.into();
 
         if target_width <= actual_width {
-            self.truncate(target_width).expect(
+            self.truncate(target_width.to_usize()).expect(
                 "It was asserted that `target_width` is a valid truncation `BitWidth` \
                  in this context.",
             )
         } else {
-            self.zero_extend(target_width).expect(
+            self.zero_extend(target_width.to_usize()).expect(
                 "It was asserted that `target_width` is a valid zero-extension \
                  `BitWidth` in this context.",
             )
@@ -482,12 +482,12 @@ impl ApInt {
         let target_width = target_width.into();
 
         if target_width <= actual_width {
-            self.truncate(target_width).expect(
+            self.truncate(target_width.to_usize()).expect(
                 "It was asserted that `target_width` is a valid truncation `BitWidth` \
                  in this context.",
             )
         } else {
-            self.sign_extend(target_width).expect(
+            self.sign_extend(target_width.to_usize()).expect(
                 "It was asserted that `target_width` is a valid sign-extension \
                  `BitWidth` in this context.",
             )

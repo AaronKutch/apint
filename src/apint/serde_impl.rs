@@ -252,7 +252,7 @@ impl<'de> Deserialize<'de> for ApInt {
                         "We already asserted that we deserialized the lower-bound of \
                          `required_digits` so `ApInt::from_iter` is fail free.",
                     )
-                    .into_truncate(width)
+                    .into_truncate(width.to_usize())
                     .expect(
                         "An `into_truncate` call to `width` cannot fail since `digits`
                              contains exactly `required_digits` digits and \
@@ -292,7 +292,7 @@ impl<'de> Deserialize<'de> for ApInt {
                         "We already asserted that we deserialized the lower-bound of \
                          `required_digits` so `ApInt::from_iter` is fail free.",
                     )
-                    .into_truncate(width)
+                    .into_truncate(width.to_usize())
                     .expect(
                         "An `into_truncate` call to `width` cannot fail since `digits` \
                          contains exactly `required_digits` digits and \
