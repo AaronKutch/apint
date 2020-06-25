@@ -1,4 +1,5 @@
 use crate::{
+    bw,
     checks,
     mem::TryInto,
     BitPos,
@@ -388,13 +389,13 @@ impl Digit {
 
 impl Width for Digit {
     fn width(&self) -> BitWidth {
-        BitWidth::DIGIT
+        bw(Digit::BITS)
     }
 }
 
 impl Width for DoubleDigit {
     fn width(&self) -> BitWidth {
-        BitWidth::DOUBLE_DIGIT
+        bw(Digit::BITS * 2)
     }
 }
 

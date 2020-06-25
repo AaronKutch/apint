@@ -100,12 +100,12 @@ impl TryFrom<usize> for BitWidth {
     }
 }
 
-/// Convenience free function for converting a `usize` to a `BitWidth`.
+/// Utility free function for converting a `usize` to a `BitWidth`.
 ///
 /// # Panics
 ///
 /// If `width == 0`, this function will panic
-pub const fn bw(width: usize) -> BitWidth {
+pub fn bw(width: usize) -> BitWidth {
     // Ideally, the code here would be `width.try_into().ok().expect("tried to
     // ...");`, but we want this to be a `const` function.
     match NonZeroUsize::new(width) {
@@ -120,16 +120,6 @@ pub const fn bw(width: usize) -> BitWidth {
 }
 
 impl BitWidth {
-    // TODO: change to using `NonZeroUsize::new()` as soon as `unwrap`ing can be
-    // done.
-
-    /// Width of a `Digit`
-    pub(crate) const DIGIT: BitWidth =
-        BitWidth(unsafe { NonZeroUsize::new_unchecked(Digit::BITS) });
-    /// Width of a `DoubleDigit`
-    pub(crate) const DOUBLE_DIGIT: BitWidth =
-        BitWidth(unsafe { NonZeroUsize::new_unchecked(Digit::BITS * 2) });
-
     /// Returns `true` if the given `BitPos` is valid for this `BitWidth`.
     #[inline]
     pub(crate) fn is_valid_pos<P>(self, pos: P) -> bool

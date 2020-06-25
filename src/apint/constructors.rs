@@ -184,7 +184,7 @@ impl ApInt {
                     "We have already asserted that `digits.len()` must be at exactly \
                      `1`.",
                 );
-                Ok(ApInt::new_inl(BitWidth::DIGIT, first_and_only))
+                Ok(ApInt::new_inl(bw(Digit::BITS), first_and_only))
             }
             n => {
                 use core::mem;

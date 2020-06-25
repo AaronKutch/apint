@@ -138,7 +138,7 @@ impl ApInt {
                  calling `Digit::sign_extend_from` is safe for it.",
             );
         }
-        if target_width < BitWidth::DIGIT {
+        if target_width < bw(Digit::BITS) {
             lsd.truncate_to(target_width).expect(
                 "Since `target_width` is always less than or equal to `Digit::BITS` \
                  bits calling `Digit::sign_extend_from` is safe for it.",
@@ -332,7 +332,7 @@ impl ApInt {
                      `target_width` is always less than or equal to `64` bits calling \
                      `Digit::sign_extend_from` is safe for it.",
                 );
-                if target_width < BitWidth::DIGIT {
+                if target_width < bw(Digit::BITS) {
                     lsd.truncate_to(target_width).expect(
                         "Since `target_width` is always less than or equal to `64` bits \
                          calling `Digit::sign_extend_from` is safe for it.",
